@@ -11,7 +11,7 @@ class PollingService:
     # In-memory storage for Task 1 & Task 4 (Batch buffer)
     _memory_storage = defaultdict(lambda: defaultdict(int))
     TTL_CACHE = {}  # Define TTL_cache as a class variable
-    tt_seconds = 100
+    tt_seconds = 5
     _flush_started = False
 
     def __init__(self):
@@ -79,9 +79,15 @@ class PollingService:
 
     async def get_complete_poll_data(self, poll_id: str) -> Dict[str, Any]:
         memory_storage_poll = self._memory_storage.get(poll_id, {})
-
-        client = await self.redis_manager.get_client(poll_id)
-        results = await client.hgetall(f"poll:{poll_id}")
+        served_via = "app_cache"
+        cached_results = self.get_cache(poll_id)
+        if cached_results is not None:
+            results = cached_results
+        else:
+            served_via = "redis"
+            client = await self.redis_manager.get_client(poll_id)
+            results = await client.hgetall(f"poll:{poll_id}")
+            self.set_cache(poll_id, results)
 
         complete_results = {}
 
@@ -92,4 +98,4 @@ class PollingService:
         for option_id, count in memory_storage_poll.items():
             complete_results[option_id] = complete_results.get(option_id, 0) + count
 
-        return complete_results, "redis+memory"
+        return complete_results, served_via
