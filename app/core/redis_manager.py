@@ -11,12 +11,12 @@ class RedisManager:
         self.clients: Dict[str, redis.Redis] = {}
 
         # Parse nodes
-        nodes = [n.strip() for n in settings.REDIS_NODES.split(",") if n.strip()]
+        self.nodes = [n.strip() for n in settings.REDIS_NODES.split(",") if n.strip()]
         # TODO: uncomment and use consistent hashing for Sharding
-        self.consistent_hash = ConsistentHash(nodes, settings.VIRTUAL_NODES)
+        self.consistent_hash = ConsistentHash(self.nodes, settings.VIRTUAL_NODES)
 
         # Initialize clients for each node
-        for node in nodes:
+        for node in self.nodes:
             self.clients[node] = redis.from_url(node, decode_responses=True)
 
     async def get_client(self, key: str) -> redis.Redis:
@@ -26,6 +26,7 @@ class RedisManager:
         # 2. Return the Redis client for that node
 
         node = self.consistent_hash.get_node(key)
-        served_via = "redis_7000" if node == self.consistent_hash.nodes[0] else "redis_7001"
+        served_via = "redis_7000" if node == self.nodes[0] else "redis_7001"
         return self.clients[node],served_via
         # raise NotImplemented
+    
