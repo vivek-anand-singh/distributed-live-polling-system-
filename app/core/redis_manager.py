@@ -24,4 +24,9 @@ class RedisManager:
         # TODO: Implement getting the appropriate Redis connection
         # 1. Use consistent hashing to determine which node should handle this key
         # 2. Return the Redis client for that node
-        raise NotImplemented
+
+        nodes = list(self.clients.keys())
+        if not nodes:
+            raise Exception("No Redis nodes configured")
+        return self.clients[nodes[0]]
+        # raise NotImplemented

@@ -9,9 +9,15 @@ from app.core.redis_manager import RedisManager
 class PollingService:
     # In-memory storage for Task 1 & Task 4 (Batch buffer)
     _memory_storage = defaultdict(lambda: defaultdict(int))
+    client = None  # Define client as a class variable
 
     def __init__(self):
         self.redis_manager = RedisManager()
+
+    async def get_client(self, poll_id: str):
+        if self.client is None:
+            self.client = await self.redis_manager.get_client(poll_id)
+        return self.client
 
     async def vote(self, poll_id: str, option_id: str) -> None:
         """
@@ -20,9 +26,8 @@ class PollingService:
         Task 2: Write to Redis immediately.
         Task 4: Buffer in memory (Batching).
         """
-        # TODO: Implement vote logic based on the current task
-        self._memory_storage[poll_id][option_id]+=1
-        # raise NotImplemented
+        client = await self.get_client(poll_id)
+        await client.hincrby(f"poll:{poll_id}", option_id, 1)
 
     async def get_results(self, poll_id: str) -> Dict[str, int]:
         """
@@ -34,7 +39,10 @@ class PollingService:
         """
         # TODO: Implement result fetching logic
         # Should return a dictionary like {"OptionA": 5, "OptionB": 3}
-        return dict(self._memory_storage.get(poll_id, {}))
+        # return dict(self._memory_storage.get(poll_id, {}))
+        client = await self.get_client(poll_id)
+        results = await client.hgetall(f"poll:{poll_id}")
+        return results
         # raise NotImplemented
 
     async def flush_batch(self):
