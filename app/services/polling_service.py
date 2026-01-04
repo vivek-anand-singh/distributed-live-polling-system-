@@ -57,7 +57,7 @@ class PollingService:
         while True:
             await asyncio.sleep(settings.BATCH_INTERVAL_SECONDS)
             for poll_id, options in self._memory_storage.items():
-                client = await self.redis_manager.get_client(poll_id)
+                client, _ = await self.redis_manager.get_client(poll_id)
                 for option_id, count in options.items():
                     await client.hincrby(f"poll:{poll_id}", option_id, count)
             self._memory_storage = defaultdict(lambda:defaultdict(int))
