@@ -84,8 +84,7 @@ class PollingService:
         if cached_results is not None:
             results = cached_results
         else:
-            served_via = "redis"
-            client = await self.redis_manager.get_client(poll_id)
+            client, served_via = await self.redis_manager.get_client(poll_id)
             results = await client.hgetall(f"poll:{poll_id}")
             self.set_cache(poll_id, results)
 

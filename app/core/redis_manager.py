@@ -26,5 +26,6 @@ class RedisManager:
         # 2. Return the Redis client for that node
 
         node = self.consistent_hash.get_node(key)
-        return self.clients[node]
+        served_via = "redis_7000" if node == self.consistent_hash.nodes[0] else "redis_7001"
+        return self.clients[node],served_via
         # raise NotImplemented
