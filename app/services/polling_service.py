@@ -12,16 +12,10 @@ class PollingService:
     _memory_storage = defaultdict(lambda: defaultdict(int))
     TTL_CACHE = {}  # Define TTL_cache as a class variable
     tt_seconds = 100
-    client = None  # Define client as a class variable
     _flush_started = False
 
     def __init__(self):
         self.redis_manager = RedisManager()
-
-    async def get_client(self):
-        if self.client is None:
-            self.client = await self.redis_manager.get_client("123") 
-        return self.client
 
     async def vote(self, poll_id: str, option_id: str) -> None:
         """
@@ -62,8 +56,8 @@ class PollingService:
 
         while True:
             await asyncio.sleep(settings.BATCH_INTERVAL_SECONDS)
-            client = await self.get_client()
             for poll_id, options in self._memory_storage.items():
+                client = await self.redis_manager.get_client(poll_id)
                 for option_id, count in options.items():
                     await client.hincrby(f"poll:{poll_id}", option_id, count)
             self._memory_storage = defaultdict(lambda:defaultdict(int))
@@ -86,7 +80,7 @@ class PollingService:
     async def get_complete_poll_data(self, poll_id: str) -> Dict[str, Any]:
         memory_storage_poll = self._memory_storage.get(poll_id, {})
 
-        client = await self.get_client()
+        client = await self.redis_manager.get_client(poll_id)
         results = await client.hgetall(f"poll:{poll_id}")
 
         complete_results = {}
